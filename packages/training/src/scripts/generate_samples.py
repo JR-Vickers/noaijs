@@ -16,7 +16,7 @@ load_dotenv()
 class ModelGenerator(ABC):
     def __init__(self, model_name: str):
         self.model_name = model_name
-        self.output_dir = Path(f"packages/training/data/raw/ai/{model_name}")
+        self.output_dir = Path(f"packages/training/src/data/raw/ai/{model_name}")
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.output_file = self.output_dir / "samples.json"
         self.existing_samples = self._load_existing_samples()

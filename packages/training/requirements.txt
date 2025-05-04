@@ -7,3 +7,6 @@ anthropic==0.50.0
 dotenv==1.0.0
 wikipedia==1.4.0
 praw==7.8.1
+huggingface_hub==0.30.2
+torch==2.7.0
+transformers==4.51.3

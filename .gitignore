@@ -1,2 +1,4 @@
 .env
 plan.md
+packages/training/src/models/
+packages/models/
