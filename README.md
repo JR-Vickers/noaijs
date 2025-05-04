@@ -1,8 +1,6 @@
 # NoAI.js (WIP)
 
-This will be a simple JS widget that detects and rejects AI-generated text in real time.
-
-<a href="https://warpcast.com/balajis.eth/0x34042e98" target="_blank">Link to original idea.</a>
+This will be a simple JS widget that detects and rejects AI-generated text in real time.  <a href="https://warpcast.com/balajis.eth/0x34042e98" target="_blank">Link to original idea.</a>
 
 ## Quickstart
 

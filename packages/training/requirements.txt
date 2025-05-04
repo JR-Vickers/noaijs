@@ -10,3 +10,7 @@ praw==7.8.1
 huggingface_hub==0.30.2
 torch==2.7.0
 transformers==4.51.3
+torchvision==0.22.0
+torchaudio==2.7.0
+matplotlib==3.10.1
+numpy==2.2.5
