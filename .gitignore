@@ -3,3 +3,10 @@ plan.md
 packages/training/src/models/
 packages/models/
 packages/test.py
+packages/core/node_modules/
+packages/core/dist/
+packages/training/src/fine_tune/distilbert-detection-finetuned/
+packages/training/src/fine_tune/distilbert-human-finetuned/
+packages/training/src/data/
+*.json
+*.txt
