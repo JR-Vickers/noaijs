@@ -1,5 +1,5 @@
 .env
-plan.md
+docs
 packages/training/src/models/
 packages/models/
 packages/test.py
@@ -9,4 +9,3 @@ packages/training/src/fine_tune/distilbert-detection-finetuned/
 packages/training/src/fine_tune/distilbert-human-finetuned/
 packages/training/src/data/
 *.json
-*.txt

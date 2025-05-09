@@ -4,12 +4,15 @@ import asyncio
 import random
 import openai
 import anthropic
+import torch
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Dict
 from dotenv import load_dotenv
 from tqdm import tqdm
+from llama_cpp import Llama
+from transformers import AutoTokenizer, AutoModelForCausalLM
 
 load_dotenv()
 
@@ -28,7 +31,7 @@ class ModelGenerator(ABC):
         return []
 
     def _get_prompts(self) -> List[str]:
-        with open("../data/prompts.json", 'r') as f:
+        with open("packages/training/src/data/prompts.json", 'r') as f:
             prompts_data = json.load(f)
             return [prompt for category in prompts_data.values() for prompt in category]
 
@@ -41,7 +44,7 @@ class ModelGenerator(ABC):
         samples_needed = total_samples - len(self.existing_samples)
         if samples_needed <= 0:
             print(f"Already have {len(self.existing_samples)} samples. No more needed.")
-            return
+            return False
 
         with tqdm(total=samples_needed, desc=f"Generating {self.model_name} samples") as pbar:
             prompt_idx = 0
@@ -57,15 +60,16 @@ class ModelGenerator(ABC):
                     samples_needed -= 1
                 prompt_idx += 1
                 await asyncio.sleep(3)  # Wait 3 seconds to respect rate limit
+        return samples_needed > 0  # Return whether more samples are needed
 
 class GPT35Generator(ModelGenerator):
     def __init__(self):
         super().__init__("gpt3.5")
-        openai.api_key = os.getenv("OPENAI_API_KEY")
+        self.client = openai.AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
     async def generate_sample(self, prompt: str, temperature: float) -> Dict:
         try:
-            response = await openai.ChatCompletion.acreate(
+            response = await self.client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=temperature,
@@ -85,11 +89,11 @@ class GPT35Generator(ModelGenerator):
 class GPT41Generator(ModelGenerator):
     def __init__(self):
         super().__init__("gpt4.1")
-        openai.api_key = os.getenv("OPENAI_API_KEY")
+        self.client = openai.AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
     async def generate_sample(self, prompt: str, temperature: float) -> Dict:
         try:
-            response = await openai.ChatCompletion.acreate(
+            response = await self.client.chat.completions.create(
                 model="gpt-4.1",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=temperature,
@@ -129,11 +133,62 @@ class ClaudeGenerator(ModelGenerator):
         except Exception as e:
             print(f"Error generating sample: {e}")
             return None
+        
+    from llama_cpp import Llama
+
+class LlamaGenerator(ModelGenerator):
+    def __init__(self):
+        super().__init__("llama-3.1-8b")
+        model_dir = "/Users/jarrett/.llama/checkpoints/Llama3.1-8B"
+        self.tokenizer = AutoTokenizer.from_pretrained(model_dir)
+        self.model = AutoModelForCausalLM.from_pretrained(
+            model_dir,
+            torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
+            device_map="auto"
+        )
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    async def generate_sample(self, prompt: str, temperature: float) -> dict:
+        import asyncio
+        loop = asyncio.get_event_loop()
+        def sync_gen():
+            inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
+            with torch.no_grad():
+                outputs = self.model.generate(
+                    **inputs,
+                    max_new_tokens=500,
+                    temperature=temperature,
+                    do_sample=True,
+                    pad_token_id=self.tokenizer.eos_token_id
+                )
+            return self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+        try:
+            text = await loop.run_in_executor(None, sync_gen)
+            return {
+                "prompt": prompt,
+                "model": self.model_name,
+                "temperature": temperature,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "text": text
+            }
+        except Exception as e:
+            print(f"Error generating sample: {e}")
+            return None
 
 async def main():
     generators = [GPT35Generator(), GPT41Generator(), ClaudeGenerator()]
-    for generator in generators:
-        await generator.generate_samples(total_samples=50)
+    total_samples = 150
+    
+    while True:
+        tasks = []
+        for generator in generators:
+            tasks.append(generator.generate_samples(total_samples))
+        
+        results = await asyncio.gather(*tasks)
+        if not any(results):  # If all generators are done
+            break
+        
+        await asyncio.sleep(1)  # Small delay between cycles
 
 if __name__ == "__main__":
     asyncio.run(main())

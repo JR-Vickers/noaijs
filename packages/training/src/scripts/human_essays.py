@@ -13,8 +13,8 @@ reddit = praw.Reddit(
 )
 
 samples = []
-# Fetch top 200 posts from r/WritingPrompts
-for submission in reddit.subreddit("WritingPrompts").top(limit=200):
+# Fetch top 200 posts from r/CollegeEssays
+for submission in reddit.subreddit("CollegeEssays").top(limit=200):
     if submission.selftext and len(submission.selftext.split()) > 30:
         samples.append({
             "prompt": submission.title,
@@ -27,7 +27,7 @@ for submission in reddit.subreddit("WritingPrompts").top(limit=200):
 # Get the directory where the script is located
 script_dir = os.path.dirname(os.path.abspath(__file__))
 # Construct the path to the output file
-output_path = os.path.join(script_dir, "..", "data", "raw", "human", "creative", "samples.json")
+output_path = os.path.join(script_dir, "..", "data", "raw", "human", "essays", "samples.json")
 # Ensure the directory exists
 os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
